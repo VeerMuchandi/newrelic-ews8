@@ -1,6 +1,6 @@
 # Using New Relic with OpenShift
 
-This example shows a way to configure New Relic for Application Monitoring for an application running on OpenShift Container Platform. The repository includes a customized assemble script for Tomcat/JBoss EWS 8 to instrument an application using a New Relic Java Agent. The script for downloading and layering in New Relic agent is baked into this assemble script. 
+This example shows a way to configure New Relic to monitor an application running on OpenShift Container Platform. The repository includes a customized assemble script for Tomcat/JBoss EWS 8 to instrument an application using a New Relic Java Agent. The script for downloading and layering in New Relic agent is baked into this assemble script. 
 
 In this example we will trigger a binary application deployment using a WAR file  (I will use petstore.war. You can use any application war file of your choice). 
 
