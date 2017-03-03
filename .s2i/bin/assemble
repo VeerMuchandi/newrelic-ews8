@@ -1,0 +1,94 @@
+#!/bin/sh
+
+# Source code provided to STI is at ${HOME}/source
+LOCAL_SOURCE_DIR=${HOME}/source
+mkdir -p $LOCAL_SOURCE_DIR
+
+DEPLOY_DIR=$JWS_HOME/webapps
+
+# the subdirectory within LOCAL_SOURCE_DIR from where we should copy build artifacts
+ARTIFACT_DIR=${ARTIFACT_DIR-target}
+
+function copy_artifacts() {
+  if [ -d $LOCAL_SOURCE_DIR/$1 ]; then
+    echo "Copying all WAR artifacts from $LOCAL_SOURCE_DIR/$1 directory into $DEPLOY_DIR for later deployment..."
+    cp -v $LOCAL_SOURCE_DIR/$1/*.war $DEPLOY_DIR 2> /dev/null
+  fi
+}
+
+# Copy the source for compilation
+cp -ad /tmp/src/* $LOCAL_SOURCE_DIR
+
+# If a pom.xml is present, this is a normal build scenario
+# so run maven.
+if [ -f "$LOCAL_SOURCE_DIR/pom.xml" ]; then
+  pushd $LOCAL_SOURCE_DIR &> /dev/null
+
+  if [ -z "$MAVEN_ARGS" ]; then
+    export MAVEN_ARGS="package -Popenshift -DskipTests -Dcom.redhat.xpaas.repo.redhatga"
+  fi
+
+  echo "Found pom.xml... attempting to build with 'mvn -e ${MAVEN_ARGS}'"
+
+  echo "Maven version:"
+  mvn --version
+
+  # Execute the actual build
+  mvn -e $MAVEN_ARGS
+
+  ERR=$?
+  if [ $ERR -ne 0 ]; then
+    echo "Aborting due to error code $ERR from Maven build"
+    exit $ERR
+  fi
+
+  # Copy built artifacts (if any!) from the target/ directory
+  # to the $DEPLOY_DIR directory for later deployment
+  copy_artifacts "$ARTIFACT_DIR"
+
+  # clean up after maven
+  mvn clean
+  if [ -d "$HOME/.m2/repository" ]; then
+    rm -r "$HOME/.m2/repository"
+  fi
+
+  popd &> /dev/null
+fi
+
+
+# Copy (probably binary) artifacts from the deployments/
+# directory to the $DEPLOY_DIR directory for later deployment
+copy_artifacts "deployments"
+
+  echo " Veer - Custom code for binary deployment"
+  # Picks up WAR_FILE_URL from buildConfig
+  echo ${WAR_FILE_URL}
+  curl -o ${DEPLOY_DIR}/ROOT.war -O ${WAR_FILE_URL}
+
+if [ -d $LOCAL_SOURCE_DIR/configuration ]; then
+  echo "Copying config files from project..."
+  cp -v $LOCAL_SOURCE_DIR/configuration/* $JWS_HOME/conf/
+fi
+
+##### Beginning of New Relic Installation #####
+echo "Beginning the deployment of New Relic Java agent"
+
+#Downloading latest agent software
+echo "Downloading the latest java agent from New Relic..."
+curl -o newrelic.zip http://download.newrelic.com/newrelic/java-agent/newrelic-agent/current/newrelic-java.zip
+
+#Prepping New Relic files
+echo "New Relic file download complete, unzipping archive..."
+unzip newrelic.zip -d /opt/webserver && cd /opt/webserver/newrelic
+
+#modify config file with license key
+echo "Updating New Relic configuration file..."
+sed -ie "s/<%= license_key %>/${NEWRELIC_LICENSE}/g" newrelic.yml
+sed -ie "s/My Application/${NEWRELIC_APPNAME}/g" newrelic.yml
+
+# Adding JVM Argument for New Relic agent
+echo "Adding JVM Argument for New Relic agent..."
+cd ../bin
+echo 'export CATALINA_OPTS="$CATALINA_OPTS -javaagent:/opt/webserver/newrelic/newrelic.jar"' >> setenv.sh
+
+echo "New Relic agent install complete"
