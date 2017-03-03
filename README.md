@@ -11,11 +11,18 @@ In this example we will trigger a binary application deployment using a WAR file
 
 **Step 1:** Clone the source code from the git repository that includes the customized assemble script for binary deployment.
 
-```git clone```
+```
+$ git clone https://github.com/VeerMuchandi/newrelic-ews8
+Cloning into 'newrelic-ews8'...
+remote: Counting objects: 7, done.
+remote: Compressing objects: 100% (5/5), done.
+remote: Total 7 (delta 0), reused 7 (delta 0), pack-reused 0
+Unpacking objects: 100% (7/7), done
+```
 
-This will create a directory with name ``xxx``. Change into this folder.
+This will create a directory with name ``newrelic-ews8``. Change into this folder.
 
-``` cd xxx ```
+``` cd newrelic-ews8 ```
 
 **Step 2:** Create a Build
 
